@@ -2403,6 +2403,9 @@ const ProspectSheet = ({ mode = 'prospect', onNav }: { mode?: 'prospect' | 'warm
           <div className="page-desc">{desc}</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('leads'); setRevision(r => r + 1); toast(`${label} refreshed`, 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           {mode === 'prospect' && <Btn variant="primary" sm onClick={() => setImportMode('file')}><Ic n={I.upload} size={13} /> Import Excel</Btn>}
           {mode === 'prospect' && <Btn variant="secondary" sm onClick={() => setShowNewProspect(true)}><Ic n={I.plus} size={13} /> New Prospect</Btn>}
           {mode === 'warm' && <Btn variant="primary" sm onClick={() => setShowNewWarmLead(true)}><Ic n={I.plus} size={13} /> New Warm Lead</Btn>}
@@ -2972,6 +2975,9 @@ const InquiryList = () => {
         <select className="sel" value={channel} onChange={e => setChannel(e.target.value)}><option value="">All Channels</option><option value="Email">Email</option><option value="Direct">Direct</option></select>
         <select className="sel" value={picFilter} onChange={e => setPicFilter(e.target.value)}><option value="">All PICs</option>{pics.map(p => <option key={p} value={p}>{p}</option>)}</select>
         <div className="toolbar-right">
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('leads:inquiries'); setRevision(r => r + 1); toast('Inquiries refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <span className="count-label">{filtered.length} inquiries</span>
           <ExportMenu data={filtered} filename="inquiries" />
         </div>
@@ -3225,6 +3231,9 @@ const QuotationList = () => {
         </select>
         <select className="sel" value={picFilter} onChange={e => setPicFilter(e.target.value)}><option value="">All PICs</option>{quotePics.map(p => <option key={p} value={p}>{p}</option>)}</select>
         <div className="toolbar-right">
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('deals:quotations'); setRevision(r => r + 1); toast('Quotations refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <ExportMenu data={filteredQuotes} filename="quotations" />
           <Btn variant="primary" sm onClick={() => setShowQuotation(true)}><Ic n={I.plus} size={13} /> Create Quotation</Btn>
         </div>
@@ -3400,6 +3409,9 @@ const SalesTracker = () => {
         <select className="sel" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="">All Categories</option>{salesCategories.map(c => <option key={c} value={c}>{c}</option>)}</select>
         <select className="sel" value={dateRange} onChange={e => setDateRange(e.target.value)}><option>This Month</option><option>Last Month</option><option>All Time</option></select>
         <div className="toolbar-right">
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('deals:sales'); setRevision(r => r + 1); toast('Sales refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <ExportMenu data={filteredSales} filename="sales" />
           <Btn variant="secondary" sm onClick={() => setShowManualSale(true)}><Ic n={I.plus} size={13} /> Record Sale Manually</Btn>
           <Btn variant="primary" sm onClick={() => setShowSale(true)}><Ic n={I.plus} size={13} /> From Quotation</Btn>
@@ -3604,6 +3616,9 @@ const ActiveClientsDashboard = ({ role, onNav }: { role?: string; onNav?: (s: Sc
           <input placeholder="Search active clients by name, contact, phone…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="toolbar-right">
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('customers'); setRevision(r => r + 1); toast('Active clients refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <span className="count-label">{filtered.length} clients</span>
           <ExportMenu data={filtered} filename="active-clients" />
         </div>
@@ -3741,6 +3756,9 @@ const CustomerAccounts = ({ role }: { role?: string }) => {
           </select>
         )}
         <div className="toolbar-right">
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('customers'); setRevision(r => r + 1); toast('Customer accounts refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <span className="count-label">{filtered.length} customers</span>
           <ExportMenu data={filtered} filename="customer-accounts-master" />
         </div>
@@ -3812,7 +3830,8 @@ const CustomerAccounts = ({ role }: { role?: string }) => {
 // ─── Contact Outreach Sheet ───────────────────────────────────────────────────
 
 const ContactOutreach = () => {
-  const prospectsData = useProspects()
+  const [revision, setRevision] = useState(0)
+  const prospectsData = useProspects(revision)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<string[]>([])
   const [copied, setCopied] = useState('')
@@ -3931,6 +3950,9 @@ const ContactOutreach = () => {
       <div className="toolbar">
         <div className="search-field"><Ic n={I.search} size={13} /><input placeholder="Search contacts…" value={search} onChange={e => setSearch(e.target.value)} /></div>
         <div className="toolbar-right">
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('leads:prospects'); setRevision(r => r + 1); toast('Contacts refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <Btn variant="primary" sm style={{ background: '#1F2937' }} onClick={() => handleCopy('RingCentral Format', r => r.phone || null, r => r.callable || r.textable)}><Ic n={I.copy} size={13} /> Copy RingCentral Format</Btn>
         </div>
       </div>
@@ -4014,6 +4036,9 @@ const Contracts = () => {
         <select className="sel" value={status} onChange={e => setStatus(e.target.value)}><option>All Statuses</option><option>Pending Signature</option><option>Active</option><option>Completed</option><option>Cancelled</option></select>
         <select className="sel" value={pickStatus} onChange={e => setPickStatus(e.target.value)}><option>All Pickup Statuses</option><option>Pending</option><option>Scheduled</option><option>Confirmed</option><option>Picked Up</option><option>Overdue</option></select>
         <div className="toolbar-right">
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('contracts'); setRevision(r => r + 1); toast('Contracts refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <Btn variant="primary" sm onClick={() => setShowNew(true)}><Ic n={I.plus} size={13} /> New Contract</Btn>
           {showNew && <NewContractDialog sales={sales} onClose={() => setShowNew(false)} onSaved={() => { setShowNew(false); setRevision(r => r + 1); }} />}
         </div>
@@ -4446,6 +4471,9 @@ const RemovedSheet = () => {
           </div>
         )}
         <div className="toolbar-right">
+          <Btn variant="ghost" sm onClick={() => { setRevision(r => r + 1); toast('Removed records refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <Btn variant="danger" sm onClick={() => setShowPaste(true)}><Ic n={I.plus} size={13} /> Paste Opted-Out / Bounced</Btn>
           <ExportMenu data={data} filename="removed" />
         </div>
@@ -5747,13 +5775,18 @@ const InventoryManagement = ({ role }: { role?: string }) => {
           <div className="page-title">Inventory Management</div>
           <div className="page-desc">Track container stock across all depots and vendors.</div>
         </div>
-        {canWrite && (
-          <div style={{ display:'flex', gap:8 }}>
-            <Btn variant="ghost" sm onClick={() => setShowImport(true)}><Ic n={I.upload} size={13} /> Import Excel</Btn>
-            <Btn variant="secondary" sm onClick={() => setShowPaste(true)}><Ic n={I.copy} size={13} /> Paste Bulk</Btn>
-            <Btn variant="primary" sm onClick={() => setShowNew(true)}><Ic n={I.plus} size={13} /> Add Inventory</Btn>
-          </div>
-        )}
+        <div style={{ display:'flex', gap:8 }}>
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('inventory'); refresh(); toast('Inventory refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
+          {canWrite && (
+            <>
+              <Btn variant="ghost" sm onClick={() => setShowImport(true)}><Ic n={I.upload} size={13} /> Import Excel</Btn>
+              <Btn variant="secondary" sm onClick={() => setShowPaste(true)}><Ic n={I.copy} size={13} /> Paste Bulk</Btn>
+              <Btn variant="primary" sm onClick={() => setShowNew(true)}><Ic n={I.plus} size={13} /> Add Inventory</Btn>
+            </>
+          )}
+        </div>
       </div>
 
       <div style={{ padding:'0 24px 16px', display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:12 }}>
@@ -5987,6 +6020,9 @@ const MonthlyReport = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Btn variant="ghost" sm onClick={() => { reload(); toast('Monthly report refreshed', 'success') }} title="Refresh report">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <input
             className="inp sm" type="month" value={month}
             onChange={e => setMonth(e.target.value)}
@@ -6727,6 +6763,9 @@ const Pickups = () => {
           <option>Overdue</option>
         </select>
         <div className="toolbar-right">
+          <Btn variant="ghost" sm onClick={() => { invalidateCache('contracts'); setRevision(r => r + 1); toast('Pickups refreshed', 'success') }} title="Refresh table data">
+            <Ic n={I.sync} size={13} /> Refresh
+          </Btn>
           <span className="count-label">{contracts.length} pickups</span>
         </div>
       </div>

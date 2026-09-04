@@ -76,9 +76,22 @@ export const UserManagement = () => {
   return (
     <div className="page-scroll">
       <div className="page-content">
-        <div style={{ marginBottom: 20 }}>
-          <div className="page-title">User Management</div>
-          <div className="page-desc">Manage roles and account status for everyone in the CRM. Assign PIC identities so users can own pipeline data.</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div>
+            <div className="page-title">User Management</div>
+            <div className="page-desc">Manage roles and account status for everyone in the CRM. Assign PIC identities so users can own pipeline data.</div>
+          </div>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => { load(); toast('Users refreshed', 'success'); }}
+            title="Refresh user list"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+            Refresh
+          </button>
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
