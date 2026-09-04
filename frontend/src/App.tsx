@@ -3122,7 +3122,7 @@ const InquiryList = () => {
                 title="No inquiries found"
                 subtitle={lookup || tab !== 'All' || channel || picFilter ? 'No inquiries match your filters. Try clearing your search or filter options.' : 'There are no inquiries logged yet.'}
                 actionLabel="Add Inquiry"
-                onAction={() => setShowNew(true)}
+                onAction={() => setShowNewInquiry(true)}
               />
             ) : (
               filtered.map(row => (
@@ -3252,7 +3252,7 @@ const QuotationList = () => {
 
   const removeQuotation = async (target: any) => {
     const id = typeof target === 'string' ? target : target.id
-    const rowObj = typeof target === 'object' ? target : (quotations as any[]).find(q => q.id === id)
+    const rowObj = typeof target === 'object' ? target : (quotes as any[]).find(q => q.id === id)
     const companyName = rowObj?.co || ''
     const { confirmed, reason, checked } = await askReason({
       title: 'Remove quotation',
@@ -3345,7 +3345,7 @@ const QuotationList = () => {
                 colSpan={13}
                 icon={I.quote}
                 title="No quotations found"
-                subtitle={search || tab !== 'All' || picFilter ? 'No quotations match your filters. Try clearing your search or filters.' : 'There are no quotations created yet.'}
+                subtitle={search || picFilter ? 'No quotations match your filters. Try clearing your search or filters.' : 'There are no quotations created yet.'}
                 actionLabel="Create Quotation"
                 onAction={() => setShowQuotation(true)}
               />
@@ -3536,7 +3536,7 @@ const SalesTracker = () => {
                 colSpan={16}
                 icon={I.sales}
                 title="No sales records found"
-                subtitle={search || tab !== 'All' || picFilter || categoryFilter ? 'No sales match your filters. Try clearing your search or filters.' : 'There are no sales recorded yet.'}
+                subtitle={search || picFilter || categoryFilter ? 'No sales match your filters. Try clearing your search or filters.' : 'There are no sales recorded yet.'}
                 actionLabel="Record Sale"
                 onAction={() => setShowManualSale(true)}
               />
@@ -3635,6 +3635,7 @@ const ActiveClientsDashboard = ({ role, onNav }: { role?: string; onNav?: (s: Sc
 
   // Scoped to personal active clients for sales managers
   const customers = useCustomers(tab, search, revision, undefined, 'personal')
+  const warmLeads = useWarmLeads(revision)
 
   // Derive portfolio KPIs
   const activeCount = customers.filter(c => c.status === 'Active').length
@@ -3675,6 +3676,7 @@ const ActiveClientsDashboard = ({ role, onNav }: { role?: string; onNav?: (s: Sc
         </div>
         {showNewInquiry && (
           <NewInquiryDialog
+            warmLeads={warmLeads as WarmLeadOption[]}
             onClose={() => setShowNewInquiry(false)}
             onSaved={() => { setShowNewInquiry(false); setRevision(r => r + 1) }}
           />
@@ -3687,6 +3689,7 @@ const ActiveClientsDashboard = ({ role, onNav }: { role?: string; onNav?: (s: Sc
         )}
         {inquiryIdentity && (
           <NewInquiryDialog
+            warmLeads={warmLeads as WarmLeadOption[]}
             initialIdentity={inquiryIdentity}
             onClose={() => setInquiryIdentity(null)}
             onSaved={() => { setInquiryIdentity(null); setRevision(r => r + 1) }}
@@ -6083,6 +6086,7 @@ const reportTabs = (r: any) => {
 
 const MonthlyReport = () => {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
+  const [revision, setRevision] = useState(0)
   const [report, setReport] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
@@ -6094,7 +6098,7 @@ const MonthlyReport = () => {
       .then(res => { if (res.data.success) setReport(res.data.data) })
       .catch(e => toast(e.response?.data?.error?.message ?? 'Could not load the report.', 'error'))
       .finally(() => setLoading(false))
-  }, [month])
+  }, [month, revision])
 
   const filename = report ? `Monthly Report ${report.month_label}` : 'Monthly Report'
 
@@ -6174,7 +6178,7 @@ const MonthlyReport = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Btn variant="ghost" sm onClick={() => { reload(); toast('Monthly report refreshed', 'success') }} title="Refresh report">
+          <Btn variant="ghost" sm onClick={() => { setRevision(r => r + 1); toast('Monthly report refreshed', 'success') }} title="Refresh report">
             <Ic n={I.sync} size={13} /> Refresh
           </Btn>
           <input
