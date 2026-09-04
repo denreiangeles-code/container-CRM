@@ -106,7 +106,25 @@ export const UserManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {users.map(u => {
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '48px 16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)' }}>
+                      <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--s2)', border: '1px solid var(--border-s)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t4)', marginBottom: 12 }}>
+                        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--t1)', marginBottom: 4 }}>No users found</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--t3)' }}>There are no registered user profiles to manage.</div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                users.map(u => {
                 const isSelf = u.id === selfId;
                 const isSaving = savingId === u.id;
                 const hasPic = u.pics && u.pics.length > 0;
@@ -155,7 +173,7 @@ export const UserManagement = () => {
                     <td>{new Date(u.created_at).toLocaleDateString()}</td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

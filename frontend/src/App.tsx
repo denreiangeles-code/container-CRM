@@ -780,6 +780,7 @@ const I = {
   outreach:    'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm18 2l-8 7-8-7',
   profit:      'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
   link:        'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+  inbox:       'M22 12h-6l-2 3h-4l-2-3H2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-7zm0-2V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v5h4l2 3h8l2-3h4z',
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -1107,6 +1108,79 @@ const EligDot = ({ on }: { on: boolean }) => (
 const ChipPIC = ({ label }: { label: string }) => (
   <span style={{ background: 'var(--brand-bg)', color: 'var(--brand)', padding: '2px 7px', borderRadius: 5, fontSize: 11, fontWeight: 700 }}>{label}</span>
 )
+
+const EmptyTableState = ({
+  icon,
+  title = 'No records found',
+  subtitle = 'There are no items matching your current filters or search criteria.',
+  actionLabel,
+  onAction,
+  colSpan,
+}: {
+  icon?: string
+  title?: string
+  subtitle?: string
+  actionLabel?: string
+  onAction?: () => void
+  colSpan?: number
+}) => {
+  const content = (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '48px 24px',
+        textAlign: 'center',
+        color: 'var(--t3)',
+        width: '100%',
+      }}
+    >
+      <div
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: '50%',
+          background: 'var(--s2)',
+          border: '1px solid var(--border-s)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--t4)',
+          marginBottom: 14,
+        }}
+      >
+        <Ic n={icon || I.inbox} size={22} />
+      </div>
+      <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--t1)', marginBottom: 6 }}>
+        {title}
+      </div>
+      {subtitle && (
+        <div style={{ fontSize: 12.5, color: 'var(--t3)', maxWidth: 420, lineHeight: 1.5, marginBottom: actionLabel && onAction ? 16 : 0 }}>
+          {subtitle}
+        </div>
+      )}
+      {actionLabel && onAction && (
+        <Btn variant="secondary" sm onClick={onAction}>
+          {actionLabel}
+        </Btn>
+      )}
+    </div>
+  )
+
+  if (colSpan !== undefined) {
+    return (
+      <tr key="empty-table-state">
+        <td colSpan={colSpan} style={{ padding: 0, border: 'none', background: 'transparent' }}>
+          {content}
+        </td>
+      </tr>
+    )
+  }
+
+  return content
+}
 
 const AssignPicModal = ({ count, onClose, onAssign }: { count: number; onClose: () => void; onAssign: (picId: string) => void }) => {
   const pics = usePics()
@@ -2564,11 +2638,20 @@ const ProspectSheet = ({ mode = 'prospect', onNav }: { mode?: 'prospect' | 'warm
           </div>
 
           {/* Data rows */}
-          {filtered.map((row, ri) => {
-            const isRemoved = row.cat === 'Removed'
-            const isSel = selected.includes(row.id)
-            return (
-              <div
+          {filtered.length === 0 ? (
+            <EmptyTableState
+              icon={mode === 'warm' ? I.lead : I.prospect}
+              title={mode === 'warm' ? 'No warm leads found' : 'No prospect clients found'}
+              subtitle={search || tab !== 'All' ? 'No records match your filters. Try clearing your search or filter tab.' : `No ${mode === 'warm' ? 'warm leads' : 'prospect clients'} in the system yet.`}
+              actionLabel={`Add ${mode === 'warm' ? 'Warm Lead' : 'Prospect'}`}
+              onAction={() => mode === 'warm' ? setShowNewWarmLead(true) : setShowNewProspect(true)}
+            />
+          ) : (
+            filtered.map((row, ri) => {
+              const isRemoved = row.cat === 'Removed'
+              const isSel = selected.includes(row.id)
+              return (
+                <div
                 key={row.id}
                 style={{ display: 'flex', background: isSel ? 'var(--brand-50)' : isRemoved ? 'var(--red-bg)' : ri % 2 === 1 ? 'var(--s2)' : 'var(--ws)', borderBottom: '1px solid var(--border-s)', transition: 'background 0.1s' }}
               >
@@ -2782,7 +2865,7 @@ const ProspectSheet = ({ mode = 'prospect', onNav }: { mode?: 'prospect' | 'warm
                 </div>
               </div>
             )
-          })}
+          }))}
         </div>
       </div>
 
@@ -3032,8 +3115,18 @@ const InquiryList = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(row => (
-              <tr key={row.ref}>
+            {filtered.length === 0 ? (
+              <EmptyTableState
+                colSpan={13}
+                icon={I.inquiry}
+                title="No inquiries found"
+                subtitle={lookup || tab !== 'All' || channel || picFilter ? 'No inquiries match your filters. Try clearing your search or filter options.' : 'There are no inquiries logged yet.'}
+                actionLabel="Add Inquiry"
+                onAction={() => setShowNew(true)}
+              />
+            ) : (
+              filtered.map(row => (
+                <tr key={row.ref}>
                 <td><span className="ref-id">{row.ref}</span></td>
                 <td>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--t1)' }}>{row.date}</div>
@@ -3084,7 +3177,7 @@ const InquiryList = () => {
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
@@ -3247,8 +3340,18 @@ const QuotationList = () => {
             <th className="r">Margin</th><th>Status</th><th>Source</th><th>PIC</th><th className="col-actions">Actions</th>
           </tr></thead>
           <tbody>
-            {filteredQuotes.map(q => (
-              <tr key={q.ref}>
+            {filteredQuotes.length === 0 ? (
+              <EmptyTableState
+                colSpan={13}
+                icon={I.quote}
+                title="No quotations found"
+                subtitle={search || tab !== 'All' || picFilter ? 'No quotations match your filters. Try clearing your search or filters.' : 'There are no quotations created yet.'}
+                actionLabel="Create Quotation"
+                onAction={() => setShowQuotation(true)}
+              />
+            ) : (
+              filteredQuotes.map(q => (
+                <tr key={q.ref}>
                 <td><span className="ref-id" style={{ color: 'var(--purple)' }}>{q.ref}</span></td>
                 <td style={{ fontSize: 12.5 }}>{q.date}</td>
                 <td>
@@ -3278,7 +3381,7 @@ const QuotationList = () => {
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
@@ -3428,8 +3531,18 @@ const SalesTracker = () => {
             <th className="col-actions">Actions</th>
           </tr></thead>
           <tbody>
-            {filteredSales.map(s => (
-              <tr key={s.ref}>
+            {filteredSales.length === 0 ? (
+              <EmptyTableState
+                colSpan={16}
+                icon={I.sales}
+                title="No sales records found"
+                subtitle={search || tab !== 'All' || picFilter || categoryFilter ? 'No sales match your filters. Try clearing your search or filters.' : 'There are no sales recorded yet.'}
+                actionLabel="Record Sale"
+                onAction={() => setShowManualSale(true)}
+              />
+            ) : (
+              filteredSales.map(s => (
+                <tr key={s.ref}>
                 <td><span className="ref-id">{s.ref}</span></td>
                 <td style={{ fontSize: 12.5 }}>{s.date}</td>
                 <td>
@@ -3468,7 +3581,7 @@ const SalesTracker = () => {
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
           <tfoot>
             <tr style={{ background: 'var(--s2)' }}>
@@ -3642,11 +3755,12 @@ const ActiveClientsDashboard = ({ role, onNav }: { role?: string; onNav?: (s: Sc
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--t3)' }}>
-                  No active clients found matching current filter.
-                </td>
-              </tr>
+              <EmptyTableState
+                colSpan={10}
+                icon={I.customer}
+                title="No active clients found"
+                subtitle={search ? 'No active clients match your search criteria.' : 'There are no active clients in the system yet.'}
+              />
             ) : (
               filtered.map(c => (
                 <tr key={c.id}>
@@ -3773,11 +3887,12 @@ const CustomerAccounts = ({ role }: { role?: string }) => {
           </tr></thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={11} style={{ textAlign: 'center', padding: '36px', color: 'var(--t3)' }}>
-                  No customer accounts found.
-                </td>
-              </tr>
+              <EmptyTableState
+                colSpan={11}
+                icon={I.customer}
+                title="No customer accounts found"
+                subtitle={search || picFilter ? 'No customer accounts match your search or filter criteria.' : 'There are no customer accounts in the system yet.'}
+              />
             ) : (
               filtered.map(c => (
                 <tr key={c.id}>
@@ -3966,23 +4081,29 @@ const ContactOutreach = () => {
             <th style={{ textAlign: 'center' }}>Text</th><th style={{ textAlign: 'center' }}>Email</th><th className="col-actions">Action</th>
           </tr></thead>
           <tbody>
-            {withElig.map(r => (
-              <tr key={r.id} style={{ background: r.cat === 'Removed' ? 'var(--red-bg)' : undefined }}>
-                <td className="col-check"><input type="checkbox" className="cb" checked={selected.includes(r.id)} onChange={() => toggleOne(r.id)} /></td>
-                <td style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)' }}>{r.company}</td>
-                <td style={{ fontSize: 12.5 }}>{r.contact}</td>
-                <td className="mono" style={{ fontSize: 12 }}>{r.phone}</td>
-                <td className="mono" style={{ fontSize: 12, color: 'var(--brand)' }}>{r.emailAddr || <span style={{ color: 'var(--t4)' }}>—</span>}</td>
-                <td style={{ fontSize: 12 }}>{r.city}, {r.state}</td>
-                <td><ChipPIC label={r.pic} /></td>
-                <td style={{ textAlign: 'center' }}><EligDot on={r.callable} /></td>
-                <td style={{ textAlign: 'center' }}><EligDot on={r.textable} /></td>
-                <td style={{ textAlign: 'center' }}><EligDot on={r.emailable} /></td>
-                <td className="col-actions"><Btn variant="ghost" sm disabled={!r.emailable} onClick={() => { setEmailRow(r); setEmailError(''); }}>Compose</Btn></td>
-              </tr>
-            ))}
-            {withElig.length === 0 && (
-              <tr><td colSpan={11} style={{ textAlign: 'center', padding: 30, color: 'var(--t4)', fontSize: 13 }}>No contacts match.</td></tr>
+            {withElig.length === 0 ? (
+              <EmptyTableState
+                colSpan={11}
+                icon={I.phone}
+                title="No outreach contacts found"
+                subtitle={search ? 'No contacts match your search query.' : 'There are no contacts available for outreach yet.'}
+              />
+            ) : (
+              withElig.map(r => (
+                <tr key={r.id} style={{ background: r.cat === 'Removed' ? 'var(--red-bg)' : undefined }}>
+                  <td className="col-check"><input type="checkbox" className="cb" checked={selected.includes(r.id)} onChange={() => toggleOne(r.id)} /></td>
+                  <td style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)' }}>{r.company}</td>
+                  <td style={{ fontSize: 12.5 }}>{r.contact}</td>
+                  <td className="mono" style={{ fontSize: 12 }}>{r.phone}</td>
+                  <td className="mono" style={{ fontSize: 12, color: 'var(--brand)' }}>{r.emailAddr || <span style={{ color: 'var(--t4)' }}>—</span>}</td>
+                  <td style={{ fontSize: 12 }}>{r.city}, {r.state}</td>
+                  <td><ChipPIC label={r.pic} /></td>
+                  <td style={{ textAlign: 'center' }}><EligDot on={r.callable} /></td>
+                  <td style={{ textAlign: 'center' }}><EligDot on={r.textable} /></td>
+                  <td style={{ textAlign: 'center' }}><EligDot on={r.emailable} /></td>
+                  <td className="col-actions"><Btn variant="ghost" sm disabled={!r.emailable} onClick={() => { setEmailRow(r); setEmailError(''); }}>Compose</Btn></td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
@@ -4051,8 +4172,18 @@ const Contracts = () => {
             <th>Status</th><th>PIC</th><th>Source Sale</th><th className="col-actions">Actions</th>
           </tr></thead>
           <tbody>
-            {contracts.map(c => (
-              <tr key={c.id} style={{ background: c.pickStatus === 'Overdue' ? 'var(--red-bg)' : undefined }}>
+            {contracts.length === 0 ? (
+              <EmptyTableState
+                colSpan={11}
+                icon={I.contract}
+                title="No contracts found"
+                subtitle={search || status !== 'All Statuses' || pickStatus !== 'All Pickup Statuses' ? 'No contracts match your search or status filters.' : 'There are no customer contracts logged yet.'}
+                actionLabel="New Contract"
+                onAction={() => setShowNew(true)}
+              />
+            ) : (
+              contracts.map(c => (
+                <tr key={c.id} style={{ background: c.pickStatus === 'Overdue' ? 'var(--red-bg)' : undefined }}>
                 <td><span className="ref-id" style={{ color: 'var(--teal)' }}>{c.ref}</span></td>
                 <td>
                   <div style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--t1)' }}>{c.co}</div>
@@ -4073,7 +4204,7 @@ const Contracts = () => {
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
@@ -4502,8 +4633,18 @@ const RemovedSheet = () => {
             <th style={{ width: 90, textAlign: 'center' }}>Action</th>
           </tr></thead>
           <tbody>
-            {filtered.map((r, i) => (
-              <tr key={r.id || i} style={{ background: 'var(--red-bg)' }}>
+            {filtered.length === 0 ? (
+              <EmptyTableState
+                colSpan={13}
+                icon={I.removed}
+                title="No removed entries"
+                subtitle={search || typeFilter ? 'No removed records match your filters.' : 'The suppression / removed list is currently empty.'}
+                actionLabel="Paste Opted-Out / Bounced"
+                onAction={() => setShowPaste(true)}
+              />
+            ) : (
+              filtered.map((r, i) => (
+                <tr key={r.id || i} style={{ background: 'var(--red-bg)' }}>
                 <td style={{ textAlign: 'center', width: 44 }}>
                   <input
                     type="checkbox"
@@ -4535,7 +4676,7 @@ const RemovedSheet = () => {
                   </Btn>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
@@ -4667,9 +4808,12 @@ const Deliverability = () => {
                 </tr>
               ))}
               {visibleResults.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--t4)', fontSize: 13 }}>
-                  {results.length === 0 ? 'Paste a list to get started.' : 'Nothing in this tab yet.'}
-                </td></tr>
+                <EmptyTableState
+                  colSpan={5}
+                  icon={I.deliverabil}
+                  title={results.length === 0 ? 'No deliverability results' : 'No records in this tab'}
+                  subtitle={results.length === 0 ? 'Paste a list of emails or numbers above to test deliverability & suppressions.' : 'Switch tabs or paste new records.'}
+                />
               )}
             </tbody>
           </table>
@@ -4967,7 +5111,12 @@ const BestClients = () => {
                 </tr>
               ))}
               {ranked.length === 0 && (
-                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 30, color: 'var(--t4)', fontSize: 13 }}>No customers with a purchase history yet.</td></tr>
+                <EmptyTableState
+                  colSpan={10}
+                  icon={I.customer}
+                  title="No client rankings yet"
+                  subtitle={search ? "No customers match your search criteria." : "No customers with a recorded purchase history yet."}
+                />
               )}
             </tbody>
           </table>
@@ -5827,9 +5976,14 @@ const InventoryManagement = ({ role }: { role?: string }) => {
             </tr></thead>
             <tbody>
               {inventory.length === 0 ? (
-                <tr><td colSpan={canWrite ? 10 : 9} style={{ textAlign:'center', padding:40, color:'var(--t4)' }}>
-                  No inventory records found.{canWrite ? ' Click "Add Inventory" or import a vendor sheet to get started.' : ''}
-                </td></tr>
+                <EmptyTableState
+                  colSpan={canWrite ? 10 : 9}
+                  icon={I.container}
+                  title="No inventory records found"
+                  subtitle={search || sizeFilter || condFilter || depotFilter || statusFilter ? 'No inventory items match your search or filters.' : 'Your inventory catalog is currently empty.'}
+                  actionLabel={canWrite ? 'Add Inventory' : undefined}
+                  onAction={canWrite ? () => setShowNew(true) : undefined}
+                />
               ) : inventory.map((row: any) => {
                 const sc = STATUS_COLORS[row.status] || { bg:'var(--s3)', color:'var(--t3)' }
                 return (
@@ -6777,8 +6931,16 @@ const Pickups = () => {
             <th>Target Date</th><th>Status</th><th>PIC</th><th className="col-actions">Actions</th>
           </tr></thead>
           <tbody>
-            {contracts.map(c => (
-              <tr key={c.id} style={{ background: c.pickStatus === 'Overdue' ? 'var(--red-bg)' : undefined }}>
+            {contracts.length === 0 ? (
+              <EmptyTableState
+                colSpan={8}
+                icon={I.pickup}
+                title="No pickups found"
+                subtitle={search || pickStatus !== 'All Pickup Statuses' ? 'No pickups match your current search or pickup status filters.' : 'There are no pending or scheduled container pickups.'}
+              />
+            ) : (
+              contracts.map(c => (
+                <tr key={c.id} style={{ background: c.pickStatus === 'Overdue' ? 'var(--red-bg)' : undefined }}>
                 <td><span className="ref-id" style={{ color: 'var(--teal)' }}>{c.ref}</span></td>
                 <td>
                   <div style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--t1)' }}>{c.co}</div>
@@ -6810,7 +6972,7 @@ const Pickups = () => {
                   </select>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
