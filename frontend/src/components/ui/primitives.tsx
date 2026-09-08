@@ -104,7 +104,10 @@ export const Trend = ({ val, up, white }: { val: string | number; up?: boolean; 
 }
 
 export const Prog = ({ pct, color = '#315EF6', tall }: { pct: number; color?: string; tall?: boolean }) => {
-  const safePct = isNaN(pct) ? 0 : Math.max(0, Math.min(100, pct))
+  // Callers pass done/target, so an unconfigured target of 0 arrives as Infinity.
+  // isNaN() does not catch that, and Math.min then clamps it to a full bar --
+  // which read as "complete" on the Outreach Dashboard when nothing was set.
+  const safePct = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0
   return (
     <div className={`prog${tall ? ' tall' : ''}`}>
       <div className="prog-fill" style={{ width: `${safePct}%`, background: color }} />

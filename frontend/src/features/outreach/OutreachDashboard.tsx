@@ -36,9 +36,28 @@ const OutreachDashboard = () => {
   const workingDays = Number(targets.working_days_per_month) || 22
   const emailDone = outreach.emails || 0, emailTarget = (Number(targets.daily_email_target) || 0) * workingDays
   const callsDone = outreach.calls || 0,  callsPref   = (Number(targets.daily_call_target_preferred) || 0) * workingDays
+  const callsMin = (Number(targets.daily_call_target_min) || 0) * workingDays
   const textsDone = outreach.texts || 0,  textsTarget = (Number(targets.daily_text_target) || 0) * workingDays
 
   const safePct = (done: number, tgt: number) => tgt > 0 ? Math.round((done / tgt) * 100) : 0
+
+  // A target of 0 means nobody has filled in Configuration -> Daily Targets, not
+  // that the goal has been met. Saying "On Track" against a goal that does not
+  // exist -- with a full progress bar, because done/0 is Infinity -- claimed
+  // progress that had never been measured, so every card checks for it.
+  const noTarget = (tgt: number) => !(tgt > 0)
+
+  // Status badge for a channel: unset target first, then met, then in progress.
+  const targetStatus = (done: number, tgt: number, met: string, going: string) =>
+    noTarget(tgt) ? { badgeLabel: 'No target set', badgeCls: 'b-gray' }
+      : safePct(done, tgt) >= 100 ? { badgeLabel: met, badgeCls: null }
+      : { badgeLabel: going, badgeCls: null }
+
+  // Remaining is only meaningful against a real target. Without one it went
+  // negative (-1500 against a target of 0), which read as a deficit.
+  const remaining = (done: number, tgt: number) => noTarget(tgt) ? '—' : Math.max(0, tgt - done)
+
+  const pctLabel = (done: number, tgt: number) => noTarget(tgt) ? '—' : `${safePct(done, tgt)}%`
 
   const [dateRange, setDateRange] = useState('This month')
   const [showDateMenu, setShowDateMenu] = useState(false)
@@ -140,32 +159,42 @@ const OutreachDashboard = () => {
             {
               label: 'Email Target', icon: I.mail, color: '#315EF6', done: emailDone, target: emailTarget,
               details: [
-                { k: 'Remaining', v: emailTarget - emailDone, color: 'var(--amber)' },
-                { k: 'Completion', v: `${safePct(emailDone, emailTarget)}%`, color: 'var(--brand)' },
+                { k: 'Remaining', v: remaining(emailDone, emailTarget), color: 'var(--amber)' },
+                { k: 'Completion', v: pctLabel(emailDone, emailTarget), color: 'var(--brand)' },
                 { k: 'Valid Available', v: eligibleContacts, color: 'var(--green)' },
                 { k: 'Excluded', v: excludedContacts, color: 'var(--red)' },
               ],
-              status: safePct(emailDone, emailTarget) >= 100 ? 'Completed' : 'On Track', statusCls: 'b-blue',
+              ...targetStatus(emailDone, emailTarget, 'Completed', 'On Track'),
+              statusCls: 'b-blue',
             },
             {
               label: 'Call Target', icon: I.phone, color: '#0D9488', done: callsDone, target: callsPref,
               details: [
                 { k: 'Answered', v: outreach.calls_answered || 0, color: 'var(--green)' },
                 { k: 'No Answer', v: outreach.calls_unanswered || 0, color: 'var(--amber)' },
-                { k: 'Remaining', v: Math.max(0, callsPref - callsDone), color: 'var(--brand)' },
-                { k: 'Completion', v: `${safePct(callsDone, callsPref)}%`, color: 'var(--green)' },
+                { k: 'Remaining', v: remaining(callsDone, callsPref), color: 'var(--brand)' },
+                { k: 'Completion', v: pctLabel(callsDone, callsPref), color: 'var(--green)' },
               ],
-              status: safePct(callsDone, callsPref) >= 100 ? 'Target Achieved' : 'Min Achieved', statusCls: 'b-green',
+              // 'Min Achieved' never checked a minimum -- it was the fallback for
+              // anything under 100%, so it showed even at zero calls. Compared
+              // against the configured minimum now, with preferred as the target.
+              ...(noTarget(callsPref)
+                ? { badgeLabel: 'No target set', badgeCls: 'b-gray' }
+                : safePct(callsDone, callsPref) >= 100 ? { badgeLabel: 'Target Achieved', badgeCls: null }
+                : callsMin > 0 && callsDone >= callsMin ? { badgeLabel: 'Min Achieved', badgeCls: null }
+                : { badgeLabel: 'Below Target', badgeCls: 'b-amber' }),
+              statusCls: 'b-green',
             },
             {
               label: 'Text / SMS Target', icon: I.inquiry, color: '#7C3AED', done: textsDone, target: textsTarget,
               details: [
-                { k: 'Remaining', v: Math.max(0, textsTarget - textsDone), color: 'var(--amber)' },
+                { k: 'Remaining', v: remaining(textsDone, textsTarget), color: 'var(--amber)' },
                 { k: 'Replies', v: outreach.text_replies || 0, color: 'var(--green)' },
-                { k: 'Completion', v: `${safePct(textsDone, textsTarget)}%`, color: 'var(--brand)' },
+                { k: 'Completion', v: pctLabel(textsDone, textsTarget), color: 'var(--brand)' },
                 { k: 'Valid Available', v: eligibleContacts, color: 'var(--purple)' },
               ],
-              status: safePct(textsDone, textsTarget) >= 100 ? 'Completed' : 'On Track', statusCls: 'b-teal',
+              ...targetStatus(textsDone, textsTarget, 'Completed', 'On Track'),
+              statusCls: 'b-teal',
             },
           ].map(t => (
             <div key={t.label} className="chart-card">
@@ -176,13 +205,22 @@ const OutreachDashboard = () => {
                   </div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{t.label}</span>
                 </div>
-                <span className={`badge ${t.statusCls}`}>{t.status}</span>
+                <span className={`badge ${t.badgeCls ?? t.statusCls}`}>{t.badgeLabel}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                {/* The big number is the month-to-date count, not the target the
+                    card is named after -- it read as "the target is 1500". */}
                 <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--t1)', fontFamily: 'var(--mono)' }}>{t.done}</span>
-                <span style={{ fontSize: 13, color: 'var(--t4)' }}>/ {t.target}</span>
+                <span style={{ fontSize: 13, color: 'var(--t4)' }}>
+                  {noTarget(t.target) ? 'logged this month' : `of ${t.target.toLocaleString()} this month`}
+                </span>
               </div>
-              <Prog pct={(t.done / t.target) * 100} color={t.color} tall />
+              <Prog pct={noTarget(t.target) ? 0 : (t.done / t.target) * 100} color={t.color} tall />
+              {noTarget(t.target) && (
+                <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 6 }}>
+                  No target configured — set one in Configuration → Daily Targets.
+                </div>
+              )}
               <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {t.details.map(d => (
                   <div key={d.k} style={{ background: 'var(--s2)', borderRadius: 8, padding: '8px 10px' }}>
@@ -204,9 +242,11 @@ const OutreachDashboard = () => {
             <thead><tr><th>Channel</th><th>Target</th><th className="r">Completed</th><th className="r">Remaining</th><th>Progress</th><th>Status</th></tr></thead>
             <tbody>
               {[
-                { ch: 'Email', target: emailTarget.toString(), done: emailDone, rem: emailTarget - emailDone, pct: safePct(emailDone, emailTarget), status: safePct(emailDone, emailTarget) >= 100 ? 'Completed' : 'On Track', cls: 'b-blue' },
-                { ch: 'Calls', target: `${callsPref} pref`, done: callsDone, rem: callsPref - callsDone > 0 ? callsPref - callsDone : 0, pct: safePct(callsDone, callsPref), status: safePct(callsDone, callsPref) >= 100 ? 'Completed' : 'Min Achieved', cls: 'b-green' },
-                { ch: 'Texts (SMS)', target: textsTarget.toString(), done: textsDone, rem: textsTarget - textsDone, pct: safePct(textsDone, textsTarget), status: safePct(textsDone, textsTarget) >= 100 ? 'Completed' : 'Nearly Complete', cls: 'b-teal' },
+                // Same unset-target problem as the cards above: 'Nearly Complete'
+                // was the fallback for anything under 100%, so it showed at zero.
+                { ch: 'Email', target: noTarget(emailTarget) ? 'Not set' : emailTarget.toLocaleString(), done: emailDone, rem: remaining(emailDone, emailTarget), pct: safePct(emailDone, emailTarget), ...targetStatus(emailDone, emailTarget, 'Completed', 'In Progress'), cls2: 'b-blue' },
+                { ch: 'Calls', target: noTarget(callsPref) ? 'Not set' : `${callsPref.toLocaleString()} pref`, done: callsDone, rem: remaining(callsDone, callsPref), pct: safePct(callsDone, callsPref), ...(noTarget(callsPref) ? { badgeLabel: 'No target set', badgeCls: 'b-gray' } : safePct(callsDone, callsPref) >= 100 ? { badgeLabel: 'Completed', badgeCls: null } : callsMin > 0 && callsDone >= callsMin ? { badgeLabel: 'Min Achieved', badgeCls: null } : { badgeLabel: 'Below Target', badgeCls: 'b-amber' }), cls2: 'b-green' },
+                { ch: 'Texts (SMS)', target: noTarget(textsTarget) ? 'Not set' : textsTarget.toLocaleString(), done: textsDone, rem: remaining(textsDone, textsTarget), pct: safePct(textsDone, textsTarget), ...targetStatus(textsDone, textsTarget, 'Completed', 'In Progress'), cls2: 'b-teal' },
               ].map(r => (
                 <tr key={r.ch}>
                   <td style={{ fontWeight: 600 }}>{r.ch}</td>
@@ -216,10 +256,10 @@ const OutreachDashboard = () => {
                   <td style={{ minWidth: 140 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ flex: 1 }}><Prog pct={r.pct} /></div>
-                      <span className="mono" style={{ fontSize: 11.5, fontWeight: 700 }}>{r.pct}%</span>
+                      <span className="mono" style={{ fontSize: 11.5, fontWeight: 700 }}>{r.badgeLabel === 'No target set' ? '—' : `${r.pct}%`}</span>
                     </div>
                   </td>
-                  <td><span className={`badge ${r.cls}`}>{r.status}</span></td>
+                  <td><span className={`badge ${r.badgeCls ?? r.cls2}`}>{r.badgeLabel}</span></td>
                 </tr>
               ))}
             </tbody>
