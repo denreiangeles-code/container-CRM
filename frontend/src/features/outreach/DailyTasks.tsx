@@ -16,8 +16,8 @@ const ACTIVITY_SECTIONS: {
     // Mail sent through Contact Outreach is counted by the CRM itself, so this
     // field is only for what it cannot see -- mail sent straight from Gmail.
     // Its value writes emails_manual; emails_completed is the generated total.
-    { key: 'emails_completed', label: 'Emails Sent Outside the CRM', targetKey: 'daily_email_target',
-      hint: 'Only mail you sent from Gmail directly. Anything sent from Contact Outreach is counted below.' },
+    { key: 'emails_completed', label: 'Emails Sent Elsewhere (type in)', targetKey: 'daily_email_target',
+      hint: 'Nothing fills this in. The CRM can send mail but cannot read your mailbox, so anything you send from Gmail, Outlook or your phone has to be counted here by hand.' },
     { key: 'email_replies',    label: 'Email Replies' },
     { key: 'emails_bounced',   label: 'Bounced / Failed' },
   ]},
@@ -170,7 +170,7 @@ const DailyTasks = () => {
                   {f.hint && <div style={{ fontSize: 10.5, color: 'var(--t4)', marginTop: 4, lineHeight: 1.4 }}>{f.hint}</div>}
                   {f.key === 'emails_completed' && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, padding: '7px 10px', background: 'var(--s2)', borderRadius: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--t3)' }}>Sent from Contact Outreach</span>
+                      <span style={{ fontSize: 11, color: 'var(--t3)' }}>Counted automatically from Contact Outreach</span>
                       <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, color: 'var(--green)' }}>{autoEmails}</span>
                     </div>
                   )}
