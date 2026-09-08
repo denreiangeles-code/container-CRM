@@ -79,7 +79,7 @@ export default function AppShell({ session, currentProfile }: AppShellProps) {
       case 'active-clients':      return <ActiveClientsDashboard role={currentProfile?.role} onNav={handleNav} />
       case 'customers':           return <CustomerAccounts role={currentProfile?.role} />
       case 'contact-outreach':    return <ContactOutreach />
-      case 'contracts':           return <Contracts />
+      case 'contracts':           return <Contracts role={currentProfile?.role} />
       case 'daily-tasks':         return <DailyTasks />
       case 'removed':             return <RemovedSheet />
       case 'deliverability':      return <Deliverability />
@@ -93,7 +93,7 @@ export default function AppShell({ session, currentProfile }: AppShellProps) {
       case 'user-management':     return currentProfile?.role === 'admin' ? <UserManagement /> : <Dashboard onNav={handleNav} session={session} />
       case 'inquiry-validation':  return ['admin', 'procurement'].includes(currentProfile?.role ?? '') ? <InquiryValidation /> : <Dashboard onNav={handleNav} session={session} />
       case 'inventory-management': return <InventoryManagement role={currentProfile?.role} />
-      case 'pickups':             return <Pickups />
+      case 'pickups':             return <Pickups role={currentProfile?.role} />
       case 'best-clients':        return <BestClients />
       case 'inquiry-funnel':      return <InquiryFunnel />
       case 'monthly-report':     return <MonthlyReport />

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { LeadController } from '../controllers/lead.controller';
+import { DeleteController } from '../controllers/delete.controller';
 import { requireRoles } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -33,6 +34,10 @@ router.post('/warm-leads', requireRoles('admin', 'sales_manager'), LeadControlle
 router.post('/inquiries', requireRoles('admin', 'sales_manager'), LeadController.createManualInquiry);
 
 router.post('/:stage/:entityId/remove', requireRoles('admin', 'sales_manager'), LeadController.removeEntry);
+// Hard delete, as opposed to /remove above, which files the record on the Removed
+// Sheet and is reversible. Declared after '/removed/:removedId' so that route,
+// which has the same shape, keeps matching first.
+router.delete('/:stage/:entityId', requireRoles('admin', 'sales_manager'), DeleteController.deletePipelineEntry);
 router.patch('/:stage/:entityId/pic', requireRoles('admin', 'sales_manager'), LeadController.assignPic);
 router.patch('/:stage/:entityId/cell', requireRoles('admin', 'sales_manager'), LeadController.updateLeadCell);
 

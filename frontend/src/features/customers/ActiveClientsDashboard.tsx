@@ -4,6 +4,9 @@ import Btn from '../../components/ui/Button'
 import { Badge } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
 import RecordDetailModal from '../../components/ui/RecordDetailModal'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
+import { confirmDelete } from '../../lib/deleteRecord'
 import type { Screen, BadgeStatus } from '../../app/types'
 import { NewInquiryDialog, NewManualSaleDialog, type WarmLeadOption } from '../pipeline/PipelineDialogs'
 import { useCustomers } from '../../hooks/useCustomers'
@@ -38,6 +41,19 @@ const ActiveClientsDashboard = ({ role, onNav }: { role?: string; onNav?: (s: Sc
     const ident = c.phone !== '-' ? c.phone : (c.email !== '-' ? c.email : c.co)
     setInquiryIdentity(ident)
   }
+
+  const canDelete = role === 'admin' || role === 'sales_manager'
+
+  // Scoped to this manager's own PIC by the backend, so deleting here never
+  // touches a colleague's sales for the same company.
+  const handleDelete = (c: any) => confirmDelete({
+    what: 'Client',
+    name: c.co,
+    endpoint: `/customers/${c.id}`,
+    cacheKey: 'customers',
+    detail: `Its ${c.sales} Won sale${c.sales === 1 ? '' : 's'} ($${c.revenue.toLocaleString()} revenue) will be deleted with it.`,
+    onDeleted: () => setRevision(r => r + 1),
+  })
 
   const handleFastSale = (c: any) => {
     setSaleInitialData({
@@ -119,6 +135,7 @@ const ActiveClientsDashboard = ({ role, onNav }: { role?: string; onNav?: (s: Sc
           <input placeholder="Search active clients by name, contact, phone…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="toolbar-right">
+          <RefreshButton cacheKey="customers" label="Active clients" onRefresh={() => setRevision(r => r + 1)} />
           <span className="count-label">{filtered.length} clients</span>
           <ExportMenu data={filtered} filename="active-clients" />
         </div>
@@ -142,11 +159,16 @@ const ActiveClientsDashboard = ({ role, onNav }: { role?: string; onNav?: (s: Sc
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '36px', color: 'var(--t3)' }}>
-                  No active clients found matching current filter.
-                </td>
-              </tr>
+              <EmptyTableState
+                colSpan={10}
+                icon={I.customer}
+                title="No active clients found"
+                subtitle={search || tab !== 'All'
+                  ? 'No clients match your filters. Try clearing the search or filter tab.'
+                  : 'Your portfolio fills up as your sales are won. Record a sale to get started.'}
+                actionLabel="Record Sale"
+                onAction={() => setShowManualSale(true)}
+              />
             ) : (
               filtered.map(c => (
                 <tr key={c.id}>
@@ -171,6 +193,11 @@ const ActiveClientsDashboard = ({ role, onNav }: { role?: string; onNav?: (s: Sc
                       <Btn variant="secondary" sm onClick={() => handleFastInquiry(c)} title="Fast 1-Click Inquiry"><Ic n={I.inquiry} size={12} /> Inquiry</Btn>
                       <Btn variant="ghost" sm onClick={() => handleFastSale(c)} title="Fast Direct Sale"><Ic n={I.plus} size={12} /> Sale</Btn>
                       <Btn variant="ghost" sm onClick={() => setViewRow(c)}>View</Btn>
+                      {canDelete && (
+                        <Btn variant="danger" sm onClick={() => handleDelete(c)} title="Delete this client and its Won sales">
+                          <Ic n={I.removed} size={12} /> Delete
+                        </Btn>
+                      )}
                     </div>
                   </td>
                 </tr>

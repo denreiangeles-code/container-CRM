@@ -5,6 +5,8 @@ import { Ic, I } from '../../components/ui/icons'
 import Btn from '../../components/ui/Button'
 import { Badge } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
 import type { Screen, BadgeStatus } from '../../app/types'
 import { exportToCSV } from '../../lib/exporters'
 
@@ -147,6 +149,7 @@ const RemovedSheet = () => {
           </div>
         )}
         <div className="toolbar-right">
+          <RefreshButton label="Removed records" onRefresh={() => setRevision(r => r + 1)} />
           <Btn variant="danger" sm onClick={() => setShowPaste(true)}><Ic n={I.plus} size={13} /> Paste Opted-Out / Bounced</Btn>
           <ExportMenu data={data} filename="removed" />
         </div>
@@ -175,6 +178,14 @@ const RemovedSheet = () => {
             <th style={{ width: 90, textAlign: 'center' }}>Action</th>
           </tr></thead>
           <tbody>
+            {filtered.length === 0 && (
+              <EmptyTableState
+                colSpan={13}
+                icon={I.removed}
+                title="No removed records found"
+                subtitle="Nothing has been opted out or bounced. Records removed from the pipeline are listed here, and can be restored."
+              />
+            )}
             {filtered.map((r, i) => (
               <tr key={r.id || i} style={{ background: 'var(--red-bg)' }}>
                 <td style={{ textAlign: 'center', width: 44 }}>

@@ -6,6 +6,9 @@ import Btn from '../../components/ui/Button'
 import { Badge, ChipPIC } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
 import RecordDetailModal from '../../components/ui/RecordDetailModal'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
+import { confirmDelete } from '../../lib/deleteRecord'
 import type { Screen, BadgeStatus } from '../../app/types'
 import { NewInquiryDialog, QuotationDialog, type InquiryOption, type WarmLeadOption } from '../pipeline/PipelineDialogs'
 import { useInquiries } from '../../hooks/useInquiries'
@@ -29,6 +32,14 @@ const InquiryList = () => {
   const pics = [...new Set(INQUIRIES.map(r => r.pic).filter(Boolean))].sort() as string[]
   const [actionError, setActionError] = useState('')
   const [addingWarmLeadId, setAddingWarmLeadId] = useState<string | null>(null)
+
+  const handleDelete = (row: any) => confirmDelete({
+    what: 'Inquiry',
+    name: row.ref,
+    endpoint: `/leads/inquiries/${row.id}`,
+    cacheKey: 'leads:inquiries',
+    onDeleted: () => setRevision(v => v + 1),
+  })
 
   const applyAlternative = async (id: string) => {
     setActionError('')
@@ -136,6 +147,7 @@ const InquiryList = () => {
         <select className="sel" value={channel} onChange={e => setChannel(e.target.value)}><option value="">All Channels</option><option value="Email">Email</option><option value="Direct">Direct</option></select>
         <select className="sel" value={picFilter} onChange={e => setPicFilter(e.target.value)}><option value="">All PICs</option>{pics.map(p => <option key={p} value={p}>{p}</option>)}</select>
         <div className="toolbar-right">
+          <RefreshButton cacheKey="leads:inquiries" label="Inquiries" onRefresh={() => setRevision(v => v + 1)} />
           <span className="count-label">{filtered.length} inquiries</span>
           <ExportMenu data={filtered} filename="inquiries" />
         </div>
@@ -190,6 +202,18 @@ const InquiryList = () => {
             </tr>
           </thead>
           <tbody>
+            {filtered.length === 0 && (
+              <EmptyTableState
+                colSpan={13}
+                icon={I.inquiry}
+                title="No inquiries found"
+                subtitle={lookup || channel || picFilter || tab !== 'All'
+                  ? 'No inquiries match your filters. Try clearing the search or filter tab.'
+                  : 'No inquiries have been raised yet.'}
+                actionLabel="New Inquiry"
+                onAction={() => setShowNewInquiry(true)}
+              />
+            )}
             {filtered.map(row => (
               <tr key={row.ref}>
                 <td><span className="ref-id">{row.ref}</span></td>
@@ -239,6 +263,9 @@ const InquiryList = () => {
                     {row.backfilledWarmLeadId && (
                       <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>Warm Lead Added</span>
                     )}
+                    <Btn variant="danger" sm onClick={() => handleDelete(row)} title="Permanently delete this inquiry">
+                      <Ic n={I.removed} size={12} /> Delete
+                    </Btn>
                   </div>
                 </td>
               </tr>

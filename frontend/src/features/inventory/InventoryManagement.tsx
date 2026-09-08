@@ -3,6 +3,8 @@ import { api } from '../../lib/api'
 import { toast, askConfirm, askReason } from '../../lib/notify'
 import { Ic, I } from '../../components/ui/icons'
 import Btn from '../../components/ui/Button'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
 import { Badge } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
 import type { Screen, BadgeStatus } from '../../app/types'
@@ -264,13 +266,16 @@ const InventoryManagement = ({ role }: { role?: string }) => {
           <div className="page-title">Inventory Management</div>
           <div className="page-desc">Track container stock across all depots and vendors.</div>
         </div>
-        {canWrite && (
-          <div style={{ display:'flex', gap:8 }}>
-            <Btn variant="ghost" sm onClick={() => setShowImport(true)}><Ic n={I.upload} size={13} /> Import Excel</Btn>
-            <Btn variant="secondary" sm onClick={() => setShowPaste(true)}><Ic n={I.copy} size={13} /> Paste Bulk</Btn>
-            <Btn variant="primary" sm onClick={() => setShowNew(true)}><Ic n={I.plus} size={13} /> Add Inventory</Btn>
-          </div>
-        )}
+        <div style={{ display:'flex', gap:8 }}>
+          <RefreshButton cacheKey="inventory" label="Inventory" onRefresh={refresh} />
+          {canWrite && (
+            <>
+              <Btn variant="ghost" sm onClick={() => setShowImport(true)}><Ic n={I.upload} size={13} /> Import Excel</Btn>
+              <Btn variant="secondary" sm onClick={() => setShowPaste(true)}><Ic n={I.copy} size={13} /> Paste Bulk</Btn>
+              <Btn variant="primary" sm onClick={() => setShowNew(true)}><Ic n={I.plus} size={13} /> Add Inventory</Btn>
+            </>
+          )}
+        </div>
       </div>
 
       <div style={{ padding:'0 24px 16px', display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:12 }}>
@@ -311,9 +316,16 @@ const InventoryManagement = ({ role }: { role?: string }) => {
             </tr></thead>
             <tbody>
               {inventory.length === 0 ? (
-                <tr><td colSpan={canWrite ? 10 : 9} style={{ textAlign:'center', padding:40, color:'var(--t4)' }}>
-                  No inventory records found.{canWrite ? ' Click "Add Inventory" or import a vendor sheet to get started.' : ''}
-                </td></tr>
+                <EmptyTableState
+                  colSpan={canWrite ? 10 : 9}
+                  icon={I.container}
+                  title="No inventory records found"
+                  subtitle={canWrite
+                    ? 'Add a record by hand, or import a vendor sheet to load stock in bulk.'
+                    : 'No container stock has been loaded yet.'}
+                  actionLabel={canWrite ? 'Add Inventory' : undefined}
+                  onAction={canWrite ? () => setShowNew(true) : undefined}
+                />
               ) : inventory.map((row: any) => {
                 const sc = STATUS_COLORS[row.status] || { bg:'var(--s3)', color:'var(--t3)' }
                 return (

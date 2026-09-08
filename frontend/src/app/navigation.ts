@@ -18,6 +18,7 @@ export const NAV: NavGroup[] = [
       { id: 'inquiries', label: 'Inquiries', icon: I.inquiry, roles: ['admin', 'sales_manager'] },
       { id: 'quotations', label: 'Quotations', icon: I.quote, roles: ['admin', 'sales_manager'] },
       { id: 'sales-tracker', label: 'Sales Tracker', icon: I.sales, roles: ['admin', 'sales_manager'] },
+      { id: 'active-clients', label: 'Active Clients', icon: I.customer, roles: ['admin', 'sales_manager'] },
     ],
   },
   {
@@ -31,7 +32,6 @@ export const NAV: NavGroup[] = [
     items: [
       { id: 'pickups', label: 'Pickup Tracking', icon: I.pickup, roles: ['admin', 'operations', 'sales_manager'] },
       { id: 'contracts', label: 'Customer Contracts', icon: I.contract, roles: ['admin', 'operations', 'sales_manager'] },
-      { id: 'active-clients', label: 'Active Clients', icon: I.customer, roles: ['admin', 'sales_manager'] },
       { id: 'customers', label: 'Customer Accounts (Master)', icon: I.customer, roles: ['admin', 'operations', 'sales_manager'] },
     ],
   },

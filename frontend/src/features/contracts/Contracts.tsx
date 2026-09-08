@@ -7,11 +7,14 @@ import { Badge, ChipPIC } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
 import type { Screen, BadgeStatus } from '../../app/types'
 import RecordDetailModal from '../../components/ui/RecordDetailModal'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
+import { confirmDelete } from '../../lib/deleteRecord'
 import { NewContractDialog } from '../pipeline/PipelineDialogs'
 import { useContracts } from '../../hooks/useContracts'
 import { useSales } from '../../hooks/useSales'
 
-const Contracts = () => {
+const Contracts = ({ role }: { role?: string }) => {
   const [status, setStatus] = useState('All Statuses');
   const [pickStatus, setPickStatus] = useState('All Pickup Statuses');
   const [search, setSearch] = useState('');
@@ -22,6 +25,21 @@ const Contracts = () => {
   // Re-fetch sales when clicking New Contract
   const sales = useSales(revision);
   const overdueContracts = contracts.filter(c => c.pickStatus === 'Overdue');
+  // Operations progresses contracts but does not void them -- the backend enforces
+  // the same split, this just keeps the button out of a role that would only 403.
+  const canDelete = role === 'admin' || role === 'sales_manager';
+
+  // Deleting releases the units this contract had reserved back into sellable
+  // stock. A picked-up contract is refused server-side; hide the button for the
+  // states that cannot be deleted rather than offering an error.
+  const handleDelete = (c: any) => confirmDelete({
+    what: 'Contract',
+    name: c.ref,
+    endpoint: `/contracts/${c.id}`,
+    cacheKey: 'contracts',
+    detail: c.qty ? `Its ${c.qty} reserved unit${c.qty === 1 ? '' : 's'} will be released back into stock.` : undefined,
+    onDeleted: () => setRevision(r => r + 1),
+  });
   const contractTransitions = (contract: any) => {
     if (contract.status === 'Pending Signature') return ['Active', 'Cancelled'];
     if (contract.status === 'Active') return contract.storedPickStatus === 'Picked Up' ? ['Completed'] : ['Cancelled'];
@@ -54,6 +72,7 @@ const Contracts = () => {
         <select className="sel" value={status} onChange={e => setStatus(e.target.value)}><option>All Statuses</option><option>Pending Signature</option><option>Active</option><option>Completed</option><option>Cancelled</option></select>
         <select className="sel" value={pickStatus} onChange={e => setPickStatus(e.target.value)}><option>All Pickup Statuses</option><option>Pending</option><option>Scheduled</option><option>Confirmed</option><option>Picked Up</option><option>Overdue</option></select>
         <div className="toolbar-right">
+          <RefreshButton cacheKey="contracts" label="Contracts" onRefresh={() => setRevision(r => r + 1)} />
           <Btn variant="primary" sm onClick={() => setShowNew(true)}><Ic n={I.plus} size={13} /> New Contract</Btn>
           {showNew && <NewContractDialog sales={sales} onClose={() => setShowNew(false)} onSaved={() => { setShowNew(false); setRevision(r => r + 1); }} />}
         </div>
@@ -66,6 +85,18 @@ const Contracts = () => {
             <th>Status</th><th>PIC</th><th>Source Sale</th><th className="col-actions">Actions</th>
           </tr></thead>
           <tbody>
+            {contracts.length === 0 && (
+              <EmptyTableState
+                colSpan={11}
+                icon={I.contract}
+                title="No contracts found"
+                subtitle={search || status !== 'All Statuses' || pickStatus !== 'All Pickup Statuses'
+                  ? 'No contracts match your filters. Try clearing the search or dropdowns.'
+                  : 'Contracts are raised against Won sales. Create one to get started.'}
+                actionLabel="New Contract"
+                onAction={() => setShowNew(true)}
+              />
+            )}
             {contracts.map(c => (
               <tr key={c.id} style={{ background: c.pickStatus === 'Overdue' ? 'var(--red-bg)' : undefined }}>
                 <td><span className="ref-id" style={{ color: 'var(--teal)' }}>{c.ref}</span></td>
@@ -85,6 +116,11 @@ const Contracts = () => {
                   <div className="row-actions">
                     <Btn variant="ghost" sm onClick={() => setViewRow(c)}>View</Btn>
                     {contractTransitions(c).length > 0 && <select className="sel" value="" aria-label={`Update ${c.ref} status`} onChange={e => { if (e.target.value) updateContractStatus(c.id, e.target.value) }} style={{ padding: '4px 8px', fontSize: 11, minWidth: 110 }}><option value="">Change status…</option>{contractTransitions(c).map(next => <option key={next}>{next}</option>)}</select>}
+                    {canDelete && c.storedPickStatus !== 'Picked Up' && c.status !== 'Completed' && (
+                      <Btn variant="danger" sm onClick={() => handleDelete(c)} title="Permanently delete this contract and release its stock">
+                        <Ic n={I.removed} size={12} /> Delete
+                      </Btn>
+                    )}
                   </div>
                 </td>
               </tr>

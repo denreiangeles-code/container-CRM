@@ -5,12 +5,17 @@ import { Ic, I } from '../../components/ui/icons'
 import Btn from '../../components/ui/Button'
 import { Badge, ChipPIC } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
 import type { Screen, BadgeStatus } from '../../app/types'
 import { EligDot } from '../../components/ui/primitives'
 import { useProspects } from '../../hooks/useProspects'
 
 const ContactOutreach = () => {
-  const prospectsData = useProspects()
+  // The revision counter exists for the Refresh button -- useProspects re-fetches
+  // when it changes, which a cache invalidation alone would not trigger.
+  const [revision, setRevision] = useState(0)
+  const prospectsData = useProspects(revision)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<string[]>([])
   const [copied, setCopied] = useState('')
@@ -129,6 +134,7 @@ const ContactOutreach = () => {
       <div className="toolbar">
         <div className="search-field"><Ic n={I.search} size={13} /><input placeholder="Search contacts…" value={search} onChange={e => setSearch(e.target.value)} /></div>
         <div className="toolbar-right">
+          <RefreshButton cacheKey="leads:prospects" label="Contacts" onRefresh={() => setRevision(r => r + 1)} />
           <Btn variant="primary" sm style={{ background: '#1F2937' }} onClick={() => handleCopy('RingCentral Format', r => r.phone || null, r => r.callable || r.textable)}><Ic n={I.copy} size={13} /> Copy RingCentral Format</Btn>
         </div>
       </div>
@@ -142,6 +148,16 @@ const ContactOutreach = () => {
             <th style={{ textAlign: 'center' }}>Text</th><th style={{ textAlign: 'center' }}>Email</th><th className="col-actions">Action</th>
           </tr></thead>
           <tbody>
+            {withElig.length === 0 && (
+              <EmptyTableState
+                colSpan={11}
+                icon={I.outreach}
+                title="No outreach contacts found"
+                subtitle={search
+                  ? 'No contacts match your search. Try a different company, name, phone or email.'
+                  : 'This sheet lists your prospect contacts. Import or add prospects to fill it.'}
+              />
+            )}
             {withElig.map(r => (
               <tr key={r.id} style={{ background: r.cat === 'Removed' ? 'var(--red-bg)' : undefined }}>
                 <td className="col-check"><input type="checkbox" className="cb" checked={selected.includes(r.id)} onChange={() => toggleOne(r.id)} /></td>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../lib/api';
 import { toast, askReason } from '../../lib/notify';
+import RefreshButton from '../../components/ui/RefreshButton';
 
 type Profile = {
   id: string;
@@ -76,9 +77,12 @@ export const UserManagement = () => {
   return (
     <div className="page-scroll">
       <div className="page-content">
-        <div style={{ marginBottom: 20 }}>
-          <div className="page-title">User Management</div>
-          <div className="page-desc">Manage roles and account status for everyone in the CRM. Assign PIC identities so users can own pipeline data.</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div>
+            <div className="page-title">User Management</div>
+            <div className="page-desc">Manage roles and account status for everyone in the CRM. Assign PIC identities so users can own pipeline data.</div>
+          </div>
+          <RefreshButton label="Users" onRefresh={load} />
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>

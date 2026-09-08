@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { ContractController } from '../controllers/contract.controller';
+import { DeleteController } from '../controllers/delete.controller';
 import { requireRoles } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -12,5 +13,8 @@ router.use(requireRoles('admin', 'sales_manager', 'operations'));
 router.get('/', ContractController.listContracts);
 router.post('/', ContractController.createContract);
 router.patch('/:id', ContractController.updateContract);
+// Operations can read and progress contracts, but voiding one outright stays with
+// the roles that own the revenue it represents.
+router.delete('/:id', requireRoles('admin', 'sales_manager'), DeleteController.deleteContract);
 
 export default router;

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { api } from '../../lib/api'
 import { toast, askConfirm, askReason } from '../../lib/notify'
+import { confirmDelete } from '../../lib/deleteRecord'
 import { Ic, I } from '../../components/ui/icons'
 import Btn from '../../components/ui/Button'
 import { Badge, ChipPIC } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
 import RecordDetailModal from '../../components/ui/RecordDetailModal'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
 import type { Screen, BadgeStatus } from '../../app/types'
 import { NewManualSaleDialog, usePics } from '../pipeline/PipelineDialogs'
 import { useCustomers } from '../../hooks/useCustomers'
@@ -20,6 +22,19 @@ const CustomerAccounts = ({ role }: { role?: string }) => {
   const pics = usePics();
 
   const isOpsOrAdmin = role === 'admin' || role === 'operations';
+  const canDelete = role === 'admin' || role === 'sales_manager';
+
+  // A row here is a rollup of the company's Won sales, so deleting it deletes
+  // those sales. Scoped to the selected PIC when one is filtered, otherwise the
+  // backend removes every PIC's Won sales for that company.
+  const handleDelete = (c: any) => confirmDelete({
+    what: 'Customer Account',
+    name: c.co,
+    endpoint: `/customers/${c.id}${picFilter ? `?pic_id=${picFilter}` : ''}`,
+    cacheKey: 'customers',
+    detail: `Its ${c.sales} Won sale${c.sales === 1 ? '' : 's'} ($${c.revenue.toLocaleString()} revenue) will be deleted with it.`,
+    onDeleted: () => setRevision(r => r + 1),
+  });
   const customers = useCustomers(tab, search, revision, undefined, 'master', picFilter || undefined);
   const filtered = tab === 'All' ? customers : customers.filter(c => c.status === tab);
 
@@ -60,6 +75,7 @@ const CustomerAccounts = ({ role }: { role?: string }) => {
           </select>
         )}
         <div className="toolbar-right">
+          <RefreshButton cacheKey="customers" label="Customer accounts" onRefresh={() => setRevision(r => r + 1)} />
           <span className="count-label">{filtered.length} customers</span>
           <ExportMenu data={filtered} filename="customer-accounts-master" />
         </div>
@@ -74,11 +90,16 @@ const CustomerAccounts = ({ role }: { role?: string }) => {
           </tr></thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={11} style={{ textAlign: 'center', padding: '36px', color: 'var(--t3)' }}>
-                  No customer accounts found.
-                </td>
-              </tr>
+              <EmptyTableState
+                colSpan={11}
+                icon={I.customer}
+                title="No customer accounts found"
+                subtitle={search || tab !== 'All'
+                  ? 'No accounts match your filters. Try clearing the search or filter tab.'
+                  : 'Customer accounts are compiled from Won sales. Record a sale to create one.'}
+                actionLabel="Record Sale"
+                onAction={() => setShowNewCustomer(true)}
+              />
             ) : (
               filtered.map(c => (
                 <tr key={c.id}>
@@ -96,7 +117,14 @@ const CustomerAccounts = ({ role }: { role?: string }) => {
                   <td style={{ fontSize: 12, color: 'var(--t3)' }}>{c.last}</td>
                   <td><Badge status={c.status as BadgeStatus} /></td>
                   <td className="col-actions">
-                    <div className="row-actions"><Btn variant="ghost" sm onClick={() => setViewRow(c)}>View</Btn></div>
+                    <div className="row-actions">
+                      <Btn variant="ghost" sm onClick={() => setViewRow(c)}>View</Btn>
+                      {canDelete && (
+                        <Btn variant="danger" sm onClick={() => handleDelete(c)} title="Delete this customer account and its Won sales">
+                          <Ic n={I.removed} size={12} /> Delete
+                        </Btn>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

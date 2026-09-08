@@ -8,6 +8,9 @@ import ExportMenu from '../../components/ui/ExportMenu'
 import RecordDetailModal from '../../components/ui/RecordDetailModal'
 import type { Screen, BadgeStatus } from '../../app/types'
 import AssignPicModal from '../../components/ui/AssignPicModal'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
+import { confirmDelete } from '../../lib/deleteRecord'
 const ProspectImportDialog = lazy(() => import('../import/ProspectImportDialog'))
 import { NewWarmLeadDialog, NewProspectDialog, NewInquiryDialog, usePics, type WarmLeadOption } from '../pipeline/PipelineDialogs'
 import { mapPipelineRow } from '../../hooks/mapPipelineRow'
@@ -33,6 +36,17 @@ const ProspectSheet = ({ mode = 'prospect', onNav }: { mode?: 'prospect' | 'warm
   const [inquiryWarmLeadId, setInquiryWarmLeadId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; colField: string; colLabel: string } | null>(null);
   const [showAssignPic, setShowAssignPic] = useState(false)
+
+  // Distinct from Remove, next to it in every row: Remove files the record on the
+  // Removed Sheet and suppresses the contact, Delete destroys the row. A Prospect
+  // already converted to a Warm Lead is refused server-side.
+  const handleDelete = (row: any) => confirmDelete({
+    what: mode === 'warm' ? 'Warm Lead' : 'Prospect',
+    name: row.company || row.contact || 'This record',
+    endpoint: `/leads/${mode === 'warm' ? 'warm-leads' : 'prospects'}/${row.id}`,
+    cacheKey: mode === 'warm' ? 'leads:warm-leads' : 'leads:prospects',
+    onDeleted: () => setRevision(v => v + 1),
+  })
   const pics = usePics()
 
   const [localOverrides, setLocalOverrides] = useState<Record<string, Record<string, any>>>({})
@@ -300,6 +314,11 @@ const ProspectSheet = ({ mode = 'prospect', onNav }: { mode?: 'prospect' | 'warm
           <div className="page-desc">{desc}</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <RefreshButton
+            cacheKey={mode === 'warm' ? 'leads:warm-leads' : 'leads:prospects'}
+            label={label}
+            onRefresh={() => setRevision(v => v + 1)}
+          />
           {mode === 'prospect' && <Btn variant="primary" sm onClick={() => setImportMode('file')}><Ic n={I.upload} size={13} /> Import Excel</Btn>}
           {mode === 'prospect' && <Btn variant="secondary" sm onClick={() => setShowNewProspect(true)}><Ic n={I.plus} size={13} /> New Prospect</Btn>}
           {mode === 'warm' && <Btn variant="primary" sm onClick={() => setShowNewWarmLead(true)}><Ic n={I.plus} size={13} /> New Warm Lead</Btn>}
@@ -452,12 +471,23 @@ const ProspectSheet = ({ mode = 'prospect', onNav }: { mode?: 'prospect' | 'warm
                 </div>
               </div>
             ))}
-            <div style={{ minWidth: 160, width: 160, padding: '7px 12px' }}>
+            <div style={{ minWidth: 232, width: 232, padding: '7px 12px' }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)' }}>ACTIONS</span>
             </div>
           </div>
 
           {/* Data rows */}
+          {filtered.length === 0 && (
+            <EmptyTableState
+              icon={mode === 'warm' ? I.lead : I.prospect}
+              title={mode === 'warm' ? 'No warm leads found' : 'No prospect clients found'}
+              subtitle={search || category || country || industry || status !== 'active' || missingContactOnly
+                ? 'No records match your filters. Try clearing your search or filters.'
+                : `No ${mode === 'warm' ? 'warm leads' : 'prospect clients'} in the system yet.`}
+              actionLabel={mode === 'warm' ? 'New Warm Lead' : 'New Prospect'}
+              onAction={() => mode === 'warm' ? setShowNewWarmLead(true) : setShowNewProspect(true)}
+            />
+          )}
           {filtered.map((row, ri) => {
             const isRemoved = row.cat === 'Removed'
             const isSel = selected.includes(row.id)
@@ -667,12 +697,15 @@ const ProspectSheet = ({ mode = 'prospect', onNav }: { mode?: 'prospect' | 'warm
                     </div>
                   )
                 })}
-                <div style={{ minWidth: 160, width: 160, padding: '0 8px', display: 'flex', alignItems: 'center', gap: 2 }}>
+                <div style={{ minWidth: 232, width: 232, padding: '0 8px', display: 'flex', alignItems: 'center', gap: 2 }}>
                   {mode === 'prospect'
                     ? <Btn variant="ghost" sm style={{ color: 'var(--brand)' }} onClick={(e) => { e.stopPropagation(); handleConvert(row.id); }}>→ Warm</Btn>
                     : <Btn variant="ghost" sm style={{ color: 'var(--brand)' }} onClick={(e) => { e.stopPropagation(); setInquiryWarmLeadId(row.id); }}>Inquiry</Btn>
                   }
                   <Btn variant="ghost" sm style={{ color: 'var(--red)' }} onClick={(e) => { e.stopPropagation(); handleRemove(row); }}>Remove</Btn>
+                  <Btn variant="danger" sm title="Permanently delete this record" onClick={(e) => { e.stopPropagation(); handleDelete(row); }}>
+                    <Ic n={I.removed} size={12} />
+                  </Btn>
                 </div>
               </div>
             )

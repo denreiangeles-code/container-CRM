@@ -3,6 +3,7 @@ import { api } from '../../lib/api'
 import { toast, askConfirm, askReason } from '../../lib/notify'
 import { Ic, I } from '../../components/ui/icons'
 import Btn from '../../components/ui/Button'
+import RefreshButton from '../../components/ui/RefreshButton'
 import { Badge } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
 import type { Screen, BadgeStatus } from '../../app/types'
@@ -78,6 +79,7 @@ const MonthlyReport = () => {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     setLoading(true)
@@ -85,7 +87,7 @@ const MonthlyReport = () => {
       .then(res => { if (res.data.success) setReport(res.data.data) })
       .catch(e => toast(e.response?.data?.error?.message ?? 'Could not load the report.', 'error'))
       .finally(() => setLoading(false))
-  }, [month])
+  }, [month, revision])
 
   const filename = report ? `Monthly Report ${report.month_label}` : 'Monthly Report'
 
@@ -165,6 +167,7 @@ const MonthlyReport = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <RefreshButton label="Monthly report" onRefresh={() => setRevision(r => r + 1)} />
           <input
             className="inp sm" type="month" value={month}
             onChange={e => setMonth(e.target.value)}

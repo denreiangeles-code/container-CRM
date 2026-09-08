@@ -5,6 +5,8 @@ import { Ic, I } from '../../components/ui/icons'
 import Btn from '../../components/ui/Button'
 import { Badge, ChipPIC, StatusSmartChip } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
 import RecordDetailModal from '../../components/ui/RecordDetailModal'
 import type { Screen, BadgeStatus } from '../../app/types'
 import { NewManualSaleDialog, SaleDialog, type QuotationOption } from '../pipeline/PipelineDialogs'
@@ -113,6 +115,7 @@ const SalesTracker = () => {
         <select className="sel" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="">All Categories</option>{salesCategories.map(c => <option key={c} value={c}>{c}</option>)}</select>
         <select className="sel" value={dateRange} onChange={e => setDateRange(e.target.value)}><option>This Month</option><option>Last Month</option><option>All Time</option></select>
         <div className="toolbar-right">
+          <RefreshButton cacheKey="deals:sales" label="Sales" onRefresh={() => setRevision(value => value + 1)} />
           <ExportMenu data={filteredSales} filename="sales" />
           <Btn variant="secondary" sm onClick={() => setShowManualSale(true)}><Ic n={I.plus} size={13} /> Record Sale Manually</Btn>
           <Btn variant="primary" sm onClick={() => setShowSale(true)}><Ic n={I.plus} size={13} /> From Quotation</Btn>
@@ -129,6 +132,18 @@ const SalesTracker = () => {
             <th className="col-actions">Actions</th>
           </tr></thead>
           <tbody>
+            {filteredSales.length === 0 && (
+              <EmptyTableState
+                colSpan={16}
+                icon={I.sales}
+                title="No sales records found"
+                subtitle={search || picFilter || categoryFilter || dateRange !== 'This Month'
+                  ? 'No sales match your filters. Try widening the date range or clearing the search.'
+                  : 'No sales recorded yet. Convert an accepted quotation, or record one manually.'}
+                actionLabel="Record Sale Manually"
+                onAction={() => setShowManualSale(true)}
+              />
+            )}
             {filteredSales.map(s => (
               <tr key={s.ref}>
                 <td><span className="ref-id">{s.ref}</span></td>

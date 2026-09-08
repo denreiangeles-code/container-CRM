@@ -6,6 +6,9 @@ import Btn from '../../components/ui/Button'
 import { Badge, ChipPIC } from '../../components/ui/primitives'
 import ExportMenu from '../../components/ui/ExportMenu'
 import RecordDetailModal from '../../components/ui/RecordDetailModal'
+import EmptyTableState from '../../components/ui/EmptyTableState'
+import RefreshButton from '../../components/ui/RefreshButton'
+import { confirmDelete } from '../../lib/deleteRecord'
 import type { Screen, BadgeStatus } from '../../app/types'
 import { QuotationDialog, SaleDialog, type InquiryOption, type QuotationOption } from '../pipeline/PipelineDialogs'
 import { useQuotations } from '../../hooks/useQuotations'
@@ -23,6 +26,14 @@ const QuotationList = () => {
   const quotes = useQuotations(revision)
   const inquiries = useInquiries(revision)
   const quotePics = [...new Set(quotes.map(q => q.pic).filter(Boolean))].sort() as string[]
+  const handleDelete = (q: any) => confirmDelete({
+    what: 'Quotation',
+    name: q.ref,
+    endpoint: `/deals/quotations/${q.id}`,
+    cacheKey: 'deals:quotations',
+    onDeleted: () => setRevision(value => value + 1),
+  })
+
   const filteredQuotes = quotes.filter(q => {
     const term = search.trim().toLowerCase()
     const searchMatch = !term || [q.co, q.contact, q.ref, q.category].some(value => String(value).toLowerCase().includes(term))
@@ -122,6 +133,7 @@ const QuotationList = () => {
         </select>
         <select className="sel" value={picFilter} onChange={e => setPicFilter(e.target.value)}><option value="">All PICs</option>{quotePics.map(p => <option key={p} value={p}>{p}</option>)}</select>
         <div className="toolbar-right">
+          <RefreshButton cacheKey="deals:quotations" label="Quotations" onRefresh={() => setRevision(value => value + 1)} />
           <ExportMenu data={filteredQuotes} filename="quotations" />
           <Btn variant="primary" sm onClick={() => setShowQuotation(true)}><Ic n={I.plus} size={13} /> Create Quotation</Btn>
         </div>
@@ -135,6 +147,18 @@ const QuotationList = () => {
             <th className="r">Margin</th><th>Status</th><th>Source</th><th>PIC</th><th className="col-actions">Actions</th>
           </tr></thead>
           <tbody>
+            {filteredQuotes.length === 0 && (
+              <EmptyTableState
+                colSpan={13}
+                icon={I.quote}
+                title="No quotations found"
+                subtitle={search || statusFilter || picFilter
+                  ? 'No quotations match your filters. Try clearing the search or dropdowns.'
+                  : 'No quotations have been raised yet.'}
+                actionLabel="Create Quotation"
+                onAction={() => setShowQuotation(true)}
+              />
+            )}
             {filteredQuotes.map(q => (
               <tr key={q.ref}>
                 <td><span className="ref-id" style={{ color: 'var(--purple)' }}>{q.ref}</span></td>
@@ -163,6 +187,9 @@ const QuotationList = () => {
                     )}
                     {q.status === 'Accepted' && <Btn variant="ghost" sm style={{ color: 'var(--green)' }} onClick={() => setSaleQuotationId(q.id)}>→ Sale</Btn>}
                     {q.status !== 'Converted' && <Btn variant="ghost" sm style={{ color: 'var(--red)' }} onClick={() => removeQuotation(q)}>Remove</Btn>}
+                    <Btn variant="danger" sm onClick={() => handleDelete(q)} title="Permanently delete this quotation">
+                      <Ic n={I.removed} size={12} /> Delete
+                    </Btn>
                   </div>
                 </td>
               </tr>
