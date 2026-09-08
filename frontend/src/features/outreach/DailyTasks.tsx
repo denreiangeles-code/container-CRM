@@ -10,10 +10,14 @@ import { usePics } from '../pipeline/PipelineDialogs'
 
 const ACTIVITY_SECTIONS: {
   title: string; icon: string; color: string;
-  fields: { key: string; label: string; targetKey?: string }[]
+  fields: { key: string; label: string; targetKey?: string; hint?: string }[]
 }[] = [
   { title: 'Email Activity', icon: I.mail, color: '#315EF6', fields: [
-    { key: 'emails_completed', label: 'Emails Completed', targetKey: 'daily_email_target' },
+    // Mail sent through Contact Outreach is counted by the CRM itself, so this
+    // field is only for what it cannot see -- mail sent straight from Gmail.
+    // Its value writes emails_manual; emails_completed is the generated total.
+    { key: 'emails_completed', label: 'Emails Sent Outside the CRM', targetKey: 'daily_email_target',
+      hint: 'Only mail you sent from Gmail directly. Anything sent from Contact Outreach is counted below.' },
     { key: 'email_replies',    label: 'Email Replies' },
     { key: 'emails_bounced',   label: 'Bounced / Failed' },
   ]},
@@ -45,6 +49,8 @@ const DailyTasks = () => {
   const [saving, setSaving] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [history, setHistory] = useState<any[]>([])
+  // Written only by the send path (log_auto_email), never by this form.
+  const [autoEmails, setAutoEmails] = useState(0)
 
   useEffect(() => {
     api.get('/settings/targets')
@@ -73,10 +79,17 @@ const DailyTasks = () => {
         const { activity, results: derived } = res.data.data || {}
         setResults(derived || {})
         if (activity) {
-          setForm(Object.fromEntries(Object.keys(BLANK_ACTIVITY).map(k => [k, activity[k] ?? 0])))
+          // emails_completed is now generated (manual + auto), so the form has to
+          // load the manual half -- loading the total would re-save the
+          // auto-counted sends as manual ones and double them.
+          setForm(Object.fromEntries(Object.keys(BLANK_ACTIVITY).map(k => [
+            k, (k === 'emails_completed' ? activity.emails_manual : activity[k]) ?? 0,
+          ])))
+          setAutoEmails(activity.emails_auto ?? 0)
           setNotes(activity.notes || '')
         } else {
           setForm(BLANK_ACTIVITY)
+          setAutoEmails(0)
           setNotes('')
         }
       })
@@ -116,7 +129,7 @@ const DailyTasks = () => {
       <div className="page-header" style={{ borderBottom: 'none' }}>
         <div>
           <div className="page-title">Daily Completed Tasks</div>
-          <div className="page-desc">Record outreach activity completed on {friendlyDate}. These numbers feed the Outreach Dashboard and PIC Performance.</div>
+          <div className="page-desc">Record outreach activity completed on {friendlyDate}. These numbers feed the Outreach Dashboard and PIC Performance. Emails sent from Contact Outreach are counted for you; calls and texts are not tracked automatically yet.</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Btn variant="secondary" sm onClick={openHistory}><Ic n={I.calendar} size={13} /> Previous Entries</Btn>
@@ -136,7 +149,7 @@ const DailyTasks = () => {
             </div>
             {section.fields.map(f => {
               const target = f.targetKey ? Number(targets[f.targetKey]) || 0 : 0
-              const done = Number(form[f.key]) || 0
+              const done = (Number(form[f.key]) || 0) + (f.key === 'emails_completed' ? autoEmails : 0)
               return (
                 <div key={f.key} style={{ marginBottom: 10 }}>
                   <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -154,6 +167,13 @@ const DailyTasks = () => {
                     onChange={e => setForm({ ...form, [f.key]: e.target.value === '' ? 0 : Number(e.target.value) })}
                     style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}
                   />
+                  {f.hint && <div style={{ fontSize: 10.5, color: 'var(--t4)', marginTop: 4, lineHeight: 1.4 }}>{f.hint}</div>}
+                  {f.key === 'emails_completed' && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, padding: '7px 10px', background: 'var(--s2)', borderRadius: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--t3)' }}>Sent from Contact Outreach</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 13, color: 'var(--green)' }}>{autoEmails}</span>
+                    </div>
+                  )}
                 </div>
               )
             })}

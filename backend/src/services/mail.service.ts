@@ -79,6 +79,18 @@ export class MailService {
         payload: { messageId: info.messageId, to, subject, sender: credential.google_email },
       });
 
+      // Count it against today's outreach. The mail is already gone, so a failure
+      // here must not surface as a send failure and make the caller retry -- that
+      // would send a second real email. Logged and swallowed instead; the figure
+      // is reconcilable from the email_sent domain events above.
+      const { error: activityError } = await supabaseAdmin.rpc('log_auto_email', {
+        p_pic_id: actorPic.id,
+        p_actor_id: actorId,
+      });
+      if (activityError) {
+        console.error('Email sent but not counted in daily_activity:', activityError.message);
+      }
+
       return { success: true, messageId: info.messageId };
     } catch (error: any) {
       await supabaseAdmin.from('domain_events').insert({
